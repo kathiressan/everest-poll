@@ -10,6 +10,7 @@ export default function DisplayPage() {
   const [submissions, setSubmissions] = useState<{ word: string; count: number }[]>([]);
   const [feed, setFeed] = useState<any[]>([]);
   const [newWord, setNewWord] = useState<string | null>(null);
+  const [showTopTags, setShowTopTags] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   
   // Buffer only for word cloud (to prevent flicker)
@@ -141,6 +142,51 @@ export default function DisplayPage() {
             </div>
           </motion.div>
         </header>
+
+        {/* Top Tags Button */}
+        <button
+          onClick={() => setShowTopTags(!showTopTags)}
+          className="absolute top-4 right-4 md:top-6 md:right-6 lg:top-8 lg:right-8 z-30 px-4 md:px-6 py-2 md:py-3 bg-brand-secondary text-brand-primary font-black text-xs md:text-sm uppercase rounded-full border-2 border-brand-primary hover:scale-105 transition-transform shadow-lg"
+        >
+          {showTopTags ? 'Hide' : 'Top 3 Tags'}
+        </button>
+
+        {/* Top Tags Display */}
+        <AnimatePresence>
+          {showTopTags && (() => {
+            const topTags = [...submissions]
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 3);
+            
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="absolute top-20 md:top-24 lg:top-28 right-4 md:right-6 lg:right-8 z-20 bg-white/95 backdrop-blur-md rounded-2xl p-4 md:p-6 shadow-2xl border-2 border-brand-primary"
+              >
+                <h3 className="text-brand-primary font-black text-sm md:text-base uppercase mb-3 md:mb-4">Top 3 Tags</h3>
+                <div className="space-y-2 md:space-y-3">
+                  {topTags.map((tag, index) => (
+                    <div key={tag.word} className="flex items-center gap-3 md:gap-4">
+                      <span className="text-2xl md:text-3xl font-black text-brand-primary">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1">
+                        <div className="font-black text-brand-text text-sm md:text-base uppercase">
+                          {tag.word}
+                        </div>
+                        <div className="text-xs md:text-sm text-brand-text/60">
+                          {tag.count} {tag.count === 1 ? 'submission' : 'submissions'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>
 
         {/* Main Content Area - Word Cloud takes all space above feed */}
         <div className="w-full pt-12 md:pt-16 lg:pt-20 h-[calc(100vh-12rem)] md:h-[calc(100vh-13rem)] lg:h-[calc(100vh-14rem)]">
