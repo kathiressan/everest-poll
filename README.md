@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Everest Townhall 2026: Word Cloud 🏔️
 
-## Getting Started
+A real-time, interactive word cloud application shaped like Mount Everest, built for the Everest Engineering townhall.
 
-First, run the development server:
+## Features
+- **Mobile-First Submission**: Participants can submit their 2026 goals via a simple, branded form.
+- **Real-time Visualization**: Words appear instantly on the main display, forming a mountain-shaped cloud.
+- **Everest Branding**: Uses exact brand colors (`Prospero`, `Everest Yellow`, `Coral`) and optimized typography.
 
+## Setup Instructions
+
+### 1. Supabase Backend
+1. Go to [Supabase](https://supabase.com/).
+2. Create a new project.
+3. Open the **SQL Editor** and run the contents of [`supabase_schema.sql`](./supabase_schema.sql).
+4. Go to **Project Settings > API** and copy your `URL` and `Anon Key`.
+
+### 2. Environment Variables
+Create a `.env.local` file in the root directory (or use the provided template) and add your Supabase and OpenAI credentials:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+# Publishable Key (safe for client)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_publishable_anon_key
+# Secret Key (server-side ONLY)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_secret_key
+
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Local Development
+Install dependencies and run the server:
+```bash
+pnpm install
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Pages
+- **Submission**: `http://localhost:3000/` (For participants)
+- **Display**: `http://localhost:3000/display` (For the big screen)
 
-## Learn More
+## Tech Stack
+- **Framework**: Next.js 15 (App Router)
+- **Database/Realtime**: Supabase
+- **Styling**: Tailwind CSS v4
+- **Animations**: Framer Motion
+- **Visualization**: D3.js + d3-cloud
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

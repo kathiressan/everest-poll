@@ -1,0 +1,295 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { supabase } from '@/lib/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mountain } from 'lucide-react';
+import WordCloud from '@/components/WordCloud';
+
+export default function DisplayPage() {
+  const [submissions, setSubmissions] = useState<{ word: string; count: number }[]>([]);
+  const [feed, setFeed] = useState<any[]>([]);
+  const [newWord, setNewWord] = useState<string | null>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
+  
+  // Buffer only for word cloud (to prevent flicker)
+  const submissionsBuffer = useRef<{ [key: string]: number }>({});
+  const hasNewData = useRef(false);
+
+  useEffect(() => {
+    // Initial fetch
+    const fetchInitialData = async () => {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (data) {
+        setFeed(data.reverse()); // Reverse so oldest is first
+        const counts = data.reduce((acc: any, curr: any) => {
+          acc[curr.word] = (acc[curr.word] || 0) + 1;
+          return acc;
+        }, {});
+        
+        setSubmissions(Object.entries(counts).map(([word, count]) => ({ word, count: count as number })));
+        submissionsBuffer.current = counts;
+      }
+    };
+
+    fetchInitialData();
+
+    // Flush word cloud buffer every 2 seconds
+    const flushInterval = setInterval(() => {
+      if (!hasNewData.current) {
+        return;
+      }
+
+      setSubmissions(Object.entries(submissionsBuffer.current).map(([word, count]) => ({ word, count })));
+      hasNewData.current = false;
+    }, 2000);
+
+    // Subscribe to new submissions
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'submissions' 
+        }, 
+        (payload) => {
+          const { word } = payload.new;
+          if (!word) return;
+
+          // Immediate highlight bubble
+          setNewWord(word);
+          setTimeout(() => setNewWord(null), 3000);
+
+          // Update feed immediately (no buffering)
+          setFeed((prev) => [...prev, payload.new]);
+
+          // Buffer word cloud updates
+          submissionsBuffer.current[word] = (submissionsBuffer.current[word] || 0) + 1;
+          hasNewData.current = true;
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(flushInterval);
+    };
+  }, []);
+
+  // Smooth auto-scroll feed to show new messages gradually
+  useEffect(() => {
+    if (feedRef.current && feed.length > 0) {
+      // Use smooth scroll behavior
+      feedRef.current.scrollTo({
+        top: feedRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [feed]);
+
+
+  return (
+    <main className="min-h-screen bg-brand-background overflow-hidden relative flex flex-col">
+      {/* Background Silhouette - Flat Design Mountain Range */}
+      <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
+        <svg viewBox="0 0 1400 600" className="w-full h-[60vh] md:h-[75vh] lg:h-[85vh]" preserveAspectRatio="none">
+          {/* Back Layer - Lightest */}
+          <path
+            d="M 0,600 L 0,450 L 100,400 L 200,300 L 250,280 L 300,300 L 400,400 L 500,350 L 600,250 L 650,230 L 700,250 L 800,350 L 900,300 L 1000,200 L 1050,180 L 1100,200 L 1200,300 L 1300,400 L 1400,450 L 1400,600 Z"
+            fill="#13454c"
+            opacity="0.03"
+          />
+          
+          {/* Middle Layer */}
+          <path
+            d="M 0,600 L 0,480 L 80,430 L 180,350 L 250,310 L 320,350 L 400,430 L 480,380 L 580,280 L 650,240 L 720,280 L 800,380 L 880,330 L 980,230 L 1050,190 L 1120,230 L 1220,330 L 1300,400 L 1400,480 L 1400,600 Z"
+            fill="#13454c"
+            opacity="0.05"
+          />
+          
+          {/* Front Layer - Darkest, with prominent center peak */}
+          <path
+            d="M 0,600 L 0,520 L 100,470 L 200,400 L 300,350 L 400,320 L 500,280 L 600,220 L 650,180 L 700,140 L 750,180 L 800,220 L 900,280 L 1000,320 L 1100,350 L 1200,400 L 1300,470 L 1400,520 L 1400,600 Z"
+            fill="#13454c"
+            opacity="0.08"
+          />
+        </svg>
+      </div>
+
+      <div className="z-10 w-full h-full flex flex-col">
+        {/* Header - Top Left Corner */}
+        <header className="absolute top-4 left-4 md:top-6 md:left-6 lg:top-8 lg:left-8 z-20 space-y-2">
+          <motion.div 
+            animate={{ y: [0, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+            className="flex items-center gap-2 md:gap-3"
+          >
+            <Mountain className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-brand-primary" />
+            <div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-brand-primary font-brand-heading uppercase tracking-tighter">
+                Our 2026 Peak
+              </h1>
+              <p className="text-brand-text/60 font-medium tracking-[0.2em] md:tracking-[0.3em] uppercase text-[8px] md:text-[10px]">
+                Live Stream of Collective Ambition
+              </p>
+            </div>
+          </motion.div>
+        </header>
+
+        {/* Main Content Area - Word Cloud takes all space above feed */}
+        <div className="w-full pt-12 md:pt-16 lg:pt-20 h-[calc(100vh-12rem)] md:h-[calc(100vh-13rem)] lg:h-[calc(100vh-14rem)]">
+          <div className="h-full relative w-full">
+            <WordCloud words={submissions} />
+            
+            <AnimatePresence>
+              {newWord && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5, y: 100 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 1.5, y: -100 }}
+                  className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-brand-secondary text-brand-primary px-8 py-4 rounded-full text-4xl font-black shadow-2xl z-50 border-4 border-brand-primary"
+                >
+                  {newWord}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Live Feed Container - Absolute positioned at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-6 lg:px-8 pb-4 md:pb-6 lg:pb-8">
+          <div className="h-48 md:h-56 lg:h-64 relative group">
+            <div className="absolute inset-0 bg-brand-primary/5 backdrop-blur-sm rounded-3xl border-2 border-brand-primary/10" />
+            <div 
+              ref={feedRef}
+              className="absolute inset-0 p-3 md:p-4 lg:p-6 overflow-y-auto scrollbar-hide flex flex-col gap-2 md:gap-2.5 lg:gap-3"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
+            >
+              {(() => {
+                // Group submissions by original_text and name
+                type GroupedItem = { id: string; name: string; original_text: string; created_at: string; tags: string[] };
+                const grouped = feed.reduce((acc, sub) => {
+                  const key = `${sub.original_text}-${sub.name}-${sub.created_at}`;
+                  if (!acc[key]) {
+                    acc[key] = {
+                      id: sub.id,
+                      name: sub.name,
+                      original_text: sub.original_text,
+                      created_at: sub.created_at,
+                      tags: []
+                    };
+                  }
+                  acc[key].tags.push(sub.word);
+                  return acc;
+                }, {} as Record<string, GroupedItem>);
+
+                return (Object.values(grouped) as GroupedItem[]).map((item: GroupedItem) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-2 bg-white/40 p-2 md:p-2.5 lg:p-3 rounded-lg md:rounded-xl border border-white/50 shadow-sm shrink-0"
+                  >
+                    <div className="flex items-start gap-2 md:gap-2.5 lg:gap-3">
+                      <span className="font-black text-brand-primary whitespace-nowrap bg-brand-secondary/20 px-1.5 md:px-2 py-0.5 rounded text-xs md:text-sm uppercase">
+                        {item.name || 'Anonymous'}
+                      </span>
+                      <span className="text-brand-text/80 font-medium text-xs md:text-sm lg:text-base">
+                        {item.original_text}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2 pl-0">
+                      {item.tags.map((tag: string, idx: number) => {
+                        // Hardcoded color map for tags
+                        const getTagColor = (text: string) => {
+                          const tagColorMap: Record<string, string> = {
+                            'INNOVATION': 'bg-violet-500 text-white',
+                            'VELOCITY': 'bg-emerald-500 text-white',
+                            'GROWTH': 'bg-orange-500 text-white',
+                            'EXCELLENCE': 'bg-cyan-500 text-white',
+                            'LEADERSHIP': 'bg-pink-500 text-white',
+                            'WEALTH': 'bg-blue-500 text-white',
+                            'PROSPERITY': 'bg-rose-500 text-white',
+                            'SUCCESS': 'bg-amber-500 text-white',
+                            'HEALTH': 'bg-teal-500 text-white',
+                            'FITNESS': 'bg-indigo-500 text-white',
+                            'LEARNING': 'bg-lime-500 text-white',
+                            'CREATIVITY': 'bg-fuchsia-500 text-white',
+                            'PRODUCTIVITY': 'bg-sky-500 text-white',
+                            'BALANCE': 'bg-red-500 text-white',
+                            'MINDFULNESS': 'bg-green-500 text-white',
+                            'ADVENTURE': 'bg-purple-500 text-white',
+                            'TRAVEL': 'bg-yellow-500 text-white',
+                            'FAMILY': 'bg-red-400 text-white',
+                            'CAREER': 'bg-blue-600 text-white',
+                            'BUSINESS': 'bg-gray-700 text-white',
+                            'IMPACT': 'bg-orange-600 text-white',
+                            'SUSTAINABILITY': 'bg-green-600 text-white',
+                            'TECHNOLOGY': 'bg-indigo-600 text-white',
+                            'AI': 'bg-purple-600 text-white',
+                            'COMMUNITY': 'bg-pink-600 text-white'
+                          };
+                          
+                          // Return hardcoded color if exists
+                          if (tagColorMap[text]) {
+                            return tagColorMap[text];
+                          }
+                          
+                          // Fallback for unmapped tags
+                      const fallbackColors = [
+                        'bg-violet-600 text-white',
+                        'bg-fuchsia-600 text-white',
+                        'bg-purple-600 text-white'
+                      ];
+                          let hash = 0;
+                          for (let i = 0; i < text.length; i++) {
+                            hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+                          }
+                          return fallbackColors[hash % fallbackColors.length];
+                        };
+                        
+                        return (
+                          <span 
+                            key={idx}
+                            className={`px-2 md:px-3 py-0.5 md:py-1 ${getTagColor(tag)} font-bold text-[9px] md:text-[10px] rounded uppercase border-l-2 md:border-l-3 border-white/40`}
+                          >
+                            {tag}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+            
+            {/* Feed Overlay Labels */}
+            <div className="absolute top-2 right-3 md:top-3 md:right-4 lg:top-4 lg:right-6 pointer-events-none">
+              <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-2.5 lg:px-3 py-0.5 md:py-1 bg-brand-primary text-white text-[8px] md:text-[9px] lg:text-[10px] font-black uppercase tracking-wider md:tracking-widest rounded-full">
+                <span className="w-1 h-1 md:w-1.5 md:h-1.5 bg-green-400 rounded-full animate-pulse" />
+                Live Feed
+              </div>
+            </div>
+          </div>
+
+          {/* Footer - Below Feed */}
+          <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 text-brand-text/30 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
+            <div>{submissions.reduce((a, b) => a + b.count, 0)} Submissions</div>
+            <div>Everest Engineering &copy; 2026</div>
+          </footer>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </main>
+  );
+}
+
