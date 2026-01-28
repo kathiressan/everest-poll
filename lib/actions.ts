@@ -13,49 +13,17 @@ const CANONICAL_TAGS = [
   'PRODUCTIVITY', 'BALANCE', 'MINDFULNESS', 'FAMILY', 'IMPACT'
 ];
 
-// Tag normalization map - maps similar concepts to canonical tags
-const TAG_NORMALIZATION: Record<string, string> = {
-  // Financial/Achievement
-  'WEALTH': 'SUCCESS',
-  'PROSPERITY': 'SUCCESS',
-  'MONEY': 'SUCCESS',
-  'FINANCIAL': 'SUCCESS',
-  'ACHIEVEMENT': 'SUCCESS',
-  
-  // Wellness
-  'HEALTH': 'WELLNESS',
-  'FITNESS': 'WELLNESS',
-  'WELLBEING': 'WELLNESS',
-  
-  // Technology/Innovation
-  'TECHNOLOGY': 'INNOVATION',
-  'AI': 'INNOVATION',
-  'TECH': 'INNOVATION',
-  'DIGITAL': 'INNOVATION',
-  
-  // Professional
-  'CAREER': 'LEADERSHIP',
-  'BUSINESS': 'LEADERSHIP',
-  'PROFESSIONAL': 'LEADERSHIP',
-  'MANAGEMENT': 'LEADERSHIP',
-  
-  // Exploration
-  'TRAVEL': 'ADVENTURE',
-  'EXPLORATION': 'ADVENTURE',
-  
-  // Social Impact
-  'SUSTAINABILITY': 'IMPACT',
-  'COMMUNITY': 'IMPACT',
-  'SOCIAL': 'IMPACT',
-  'ENVIRONMENT': 'IMPACT',
-};
-
 export async function mapGoalToCategoryAndInsert(text: string, name?: string): Promise<{ success: boolean; error?: string; tags?: string[] }> {
   let mappedWords: string[] = [];
 
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your_openai_key_here') {
+  // Check for Google AI Key (Primary) or OpenAI Key (Fallback)
+  const hasGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY && process.env.GOOGLE_GENERATIVE_AI_API_KEY !== 'your_google_key_here';
+  const hasOpenAIKey = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_key_here';
+
+  if (!hasGoogleKey && !hasOpenAIKey) {
+    console.log('⚠️ No AI API keys found, falling back to basic extraction');
     // Basic fallback: take 1st 2 non-stop words
-    const stopWords = ['a', 'an', 'the', 'is', 'and', 'to', 'for', 'with', 'my', 'our'];
+    const stopWords = ['a', 'an', 'the', 'is', 'and', 'to', 'for', 'with', 'my', 'our', 'to', 'be', 'better', 'fulfil', 'my', 'goals'];
     mappedWords = text
       .split(/\s+/)
       .map(w => w.replace(/[^\w]/g, '').toUpperCase())
@@ -65,10 +33,14 @@ export async function mapGoalToCategoryAndInsert(text: string, name?: string): P
     if (mappedWords.length === 0) mappedWords = ['EXCELLENCE'];
   } else {
     try {
+      console.log(`🤖 Generating tags for: "${text}" using Gemini 3 Flash...`);
       const { text: aiOutput } = await generateText({
-        model: google('gemini-3-flash'),
+        model: google('gemini-2.0-flash'),
         system: `You are a corporate branding assistant for Everest Engineering. 
         Your task is to summarize a user's 2026 goal into 1-3 CONCISE, HIGH-IMPACT words.
+        
+        CRITICAL: Most user goals are written in informal language, with emojis, or using slang (e.g., "Make MONEHHHHH", "Travel more ✈️", "Learn stuff"). 
+        Use your intelligence to understand the DEEP CONTEXT and map these to the MOST relevant categories from the approved list below.
         
         CRITICAL: You MUST ONLY use words from this approved list. DO NOT use any other words:
         SUCCESS, WELLNESS, INNOVATION, LEADERSHIP, ADVENTURE, GROWTH, EXCELLENCE, 
@@ -128,26 +100,29 @@ export async function mapGoalToCategoryAndInsert(text: string, name?: string): P
         prompt: `User goal: "${text}"`,
       });
 
+      console.log(`✅ AI Output: "${aiOutput.trim()}"`);
+
       mappedWords = aiOutput
         .split(',')
         .map(w => w.trim().toUpperCase())
         .filter(w => w.length > 0)
         .slice(0, 3);
       
-      if (mappedWords.length === 0) mappedWords = ['EXCELLENCE'];
+      if (mappedWords.length === 0) {
+        console.warn('⚠️ AI returned no tags, falling back to EXCELLENCE');
+        mappedWords = ['EXCELLENCE'];
+      }
     } catch (error) {
-      console.error('AI Mapping Error:', error);
+      console.error('❌ AI Mapping Error:', error);
       mappedWords = ['EXCELLENCE'];
     }
   }
   
-  // Normalize tags to canonical versions
-  mappedWords = mappedWords.map(word => TAG_NORMALIZATION[word] || word);
+  // Filter out any words not in the canonical list
+  mappedWords = mappedWords.filter(word => CANONICAL_TAGS.includes(word));
   
-  // Ensure all tags are in the canonical list, fallback to EXCELLENCE if not
-  mappedWords = mappedWords.map(word => 
-    CANONICAL_TAGS.includes(word) ? word : 'EXCELLENCE'
-  );
+  // Final fallback if no valid tags found
+  if (mappedWords.length === 0) mappedWords = ['EXCELLENCE'];
   
   // Remove duplicates
   mappedWords = [...new Set(mappedWords)];

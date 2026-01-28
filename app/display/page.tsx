@@ -93,7 +93,7 @@ export default function DisplayPage() {
           schema: 'public', 
           table: 'submissions' 
         }, 
-        (payload) => {
+        (payload: any) => {
           const { word, ip_address } = payload.new;
           if (!word) return;
 
@@ -108,26 +108,24 @@ export default function DisplayPage() {
           // Buffer word cloud updates
           submissionsBuffer.current[word] = (submissionsBuffer.current[word] || 0) + 1;
           hasNewData.current = true;
-          
-          // Update unique IP count if new IP
-          if (ip_address) {
-            setUniqueIpCount(prev => {
-              // Recalculate from feed + message queue
-              const allSubmissions = [...feed, ...messageQueue.current];
-              const allIps = new Set(allSubmissions.map(s => s.ip_address).filter(Boolean));
-              return allIps.size;
-            });
-          }
         }
       )
       .subscribe();
-
 
     return () => {
       supabase.removeChannel(channel);
       clearInterval(flushInterval);
     };
-  }, []);
+  }, []); // Initial setup only
+
+  // Update unique participant count whenever feed or queue changes
+  useEffect(() => {
+    const allKnownSubmissions = [...feed, ...messageQueue.current];
+    const uniqueIps = new Set(allKnownSubmissions.map(s => s.ip_address).filter(Boolean));
+    if (uniqueIps.size > 0) {
+      setUniqueIpCount(uniqueIps.size);
+    }
+  }, [feed]); // Recalculate when feed updates
 
   // Smooth auto-scroll feed to show new messages gradually
   useEffect(() => {
@@ -338,18 +336,11 @@ export default function DisplayPage() {
             </div>
           </div>
 
-          {/* Footer - Below Feed */}
           <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
             <div>{uniqueIpCount} {uniqueIpCount === 1 ? 'Participant' : 'Participants'}</div>
           </footer>
         </div>
       </div>
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </main>
   );
 }
