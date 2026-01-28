@@ -184,7 +184,7 @@ export default function Home() {
         </AnimatePresence>
 
         <footer className="pt-12 text-center text-xs text-brand-text/40 font-medium tracking-widest uppercase">
-          Everest Engineering &copy; 2026
+          Everest Engineering
         </footer>
       </motion.div>
     </main>
