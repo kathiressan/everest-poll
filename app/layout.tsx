@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Everest Townhall January 2026",
   description: "Share your 2026 goals with the team.",
+  icons: {
+    icon: '/E.png',
+  },
 };
 
 export default function RootLayout({
