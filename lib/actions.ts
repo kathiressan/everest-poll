@@ -66,7 +66,7 @@ export async function mapGoalToCategoryAndInsert(text: string, name?: string): P
   } else {
     try {
       const { text: aiOutput } = await generateText({
-        model: google('gemini-2.0-flash-exp'),
+        model: google('gemini-3-flash'),
         system: `You are a corporate branding assistant for Everest Engineering. 
         Your task is to summarize a user's 2026 goal into 1-3 CONCISE, HIGH-IMPACT words.
         
