@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { mapGoalToCategoryAndInsert } from '@/lib/actions';
-import { Send, CheckCircle2, Mountain } from 'lucide-react';
+import { Send, CheckCircle2, Mountain, Monitor } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   const [word, setWord] = useState('');
@@ -116,10 +117,18 @@ export default function Home() {
               <p className="text-brand-text/80 font-medium">Your goal is joining the peaks. Look at the big screen!</p>
               <button 
                 onClick={() => setStatus('idle')}
-                className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-all uppercase tracking-widest"
+                className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-all uppercase tracking-widest text-sm"
               >
                 Submit Another
               </button>
+
+              <Link 
+                href="/display"
+                className="w-full py-4 bg-transparent text-brand-primary border-2 border-brand-primary font-bold rounded-xl hover:bg-brand-primary/5 transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+              >
+                <Monitor className="w-4 h-4" />
+                View Live Board
+              </Link>
             </motion.div>
           ) : (
             <motion.div
