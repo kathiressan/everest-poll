@@ -83,50 +83,27 @@ export default function Home() {
                   {submittedTags.map((tag, index) => {
                     // Hardcoded color map for tags
                     const getTagColor = (text: string) => {
+                      // Consolidated 15-tag color map - bright colors only
                       const tagColorMap: Record<string, string> = {
+                        'SUCCESS': 'bg-amber-500 text-white',
+                        'WELLNESS': 'bg-teal-500 text-white',
                         'INNOVATION': 'bg-violet-500 text-white',
-                        'VELOCITY': 'bg-emerald-500 text-white',
+                        'LEADERSHIP': 'bg-blue-500 text-white',
+                        'ADVENTURE': 'bg-purple-500 text-white',
                         'GROWTH': 'bg-orange-500 text-white',
                         'EXCELLENCE': 'bg-cyan-500 text-white',
-                        'LEADERSHIP': 'bg-pink-500 text-white',
-                        'WEALTH': 'bg-blue-500 text-white',
-                        'PROSPERITY': 'bg-rose-500 text-white',
-                        'SUCCESS': 'bg-amber-500 text-white',
-                        'HEALTH': 'bg-teal-500 text-white',
-                        'FITNESS': 'bg-indigo-500 text-white',
+                        'VELOCITY': 'bg-emerald-500 text-white',
                         'LEARNING': 'bg-lime-500 text-white',
                         'CREATIVITY': 'bg-fuchsia-500 text-white',
                         'PRODUCTIVITY': 'bg-sky-500 text-white',
                         'BALANCE': 'bg-red-500 text-white',
                         'MINDFULNESS': 'bg-green-500 text-white',
-                        'ADVENTURE': 'bg-purple-500 text-white',
-                        'TRAVEL': 'bg-yellow-500 text-white',
-                        'FAMILY': 'bg-red-400 text-white',
-                        'CAREER': 'bg-blue-600 text-white',
-                        'BUSINESS': 'bg-gray-700 text-white',
-                        'IMPACT': 'bg-orange-600 text-white',
-                        'SUSTAINABILITY': 'bg-green-600 text-white',
-                        'TECHNOLOGY': 'bg-indigo-600 text-white',
-                        'AI': 'bg-purple-600 text-white',
-                        'COMMUNITY': 'bg-pink-600 text-white'
+                        'FAMILY': 'bg-rose-500 text-white',
+                        'IMPACT': 'bg-indigo-500 text-white'
                       };
                       
-                      // Return hardcoded color if exists
-                      if (tagColorMap[text]) {
-                        return tagColorMap[text];
-                      }
-                      
-                      // Fallback for unmapped tags
-                      const fallbackColors = [
-                        'bg-violet-600 text-white',
-                        'bg-fuchsia-600 text-white',
-                        'bg-purple-600 text-white'
-                      ];
-                      let hash = 0;
-                      for (let i = 0; i < text.length; i++) {
-                        hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-                      }
-                      return fallbackColors[hash % fallbackColors.length];
+                      // Return color if exists, otherwise use fallback
+                      return tagColorMap[text] || 'bg-slate-600 text-white';
                     };
                     
                     return (

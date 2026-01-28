@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mountain } from 'lucide-react';
@@ -11,14 +11,40 @@ export default function DisplayPage() {
   const [feed, setFeed] = useState<any[]>([]);
   const [newWord, setNewWord] = useState<string | null>(null);
   const [showTopTags, setShowTopTags] = useState(false);
+  const [uniqueIpCount, setUniqueIpCount] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
+  
+  // Message queue for throttling feed updates
+  const messageQueue = useRef<any[]>([]);
+  const isProcessingQueue = useRef(false);
   
   // Buffer only for word cloud (to prevent flicker)
   const submissionsBuffer = useRef<{ [key: string]: number }>({});
   const hasNewData = useRef(false);
 
+  // Process message queue with delay for readability
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingQueue.current) return;
+    
+    isProcessingQueue.current = true;
+    
+    while (messageQueue.current.length > 0) {
+      const message = messageQueue.current.shift();
+      if (message) {
+        setFeed((prev) => [...prev, message]);
+        
+        // Wait 600ms before showing next message for readability
+        if (messageQueue.current.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 600));
+        }
+      }
+    }
+    
+    isProcessingQueue.current = false;
+  }, []);
+
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch with immediate display
     const fetchInitialData = async () => {
       const { data, error } = await supabase
         .from('submissions')
@@ -26,14 +52,23 @@ export default function DisplayPage() {
         .order('created_at', { ascending: false });
       
       if (data) {
-        setFeed(data.reverse()); // Reverse so oldest is first
-        const counts = data.reduce((acc: any, curr: any) => {
+        const reversed = data.reverse(); // Oldest first
+        
+        // Calculate word cloud counts
+        const counts = reversed.reduce((acc: any, curr: any) => {
           acc[curr.word] = (acc[curr.word] || 0) + 1;
           return acc;
         }, {});
         
         setSubmissions(Object.entries(counts).map(([word, count]) => ({ word, count: count as number })));
         submissionsBuffer.current = counts;
+        
+        // Calculate unique IP count
+        const uniqueIps = new Set(reversed.map((s: any) => s.ip_address).filter(Boolean));
+        setUniqueIpCount(uniqueIps.size);
+        
+        // Show all existing messages immediately (no throttling on page load)
+        setFeed(reversed);
       }
     };
 
@@ -59,19 +94,30 @@ export default function DisplayPage() {
           table: 'submissions' 
         }, 
         (payload) => {
-          const { word } = payload.new;
+          const { word, ip_address } = payload.new;
           if (!word) return;
 
           // Immediate highlight bubble
           setNewWord(word);
           setTimeout(() => setNewWord(null), 3000);
 
-          // Update feed immediately (no buffering)
-          setFeed((prev) => [...prev, payload.new]);
+          // Add to message queue instead of updating feed immediately
+          messageQueue.current.push(payload.new);
+          processMessageQueue();
 
           // Buffer word cloud updates
           submissionsBuffer.current[word] = (submissionsBuffer.current[word] || 0) + 1;
           hasNewData.current = true;
+          
+          // Update unique IP count if new IP
+          if (ip_address) {
+            setUniqueIpCount(prev => {
+              // Recalculate from feed + message queue
+              const allSubmissions = [...feed, ...messageQueue.current];
+              const allIps = new Set(allSubmissions.map(s => s.ip_address).filter(Boolean));
+              return allIps.size;
+            });
+          }
         }
       )
       .subscribe();
@@ -148,7 +194,7 @@ export default function DisplayPage() {
           onClick={() => setShowTopTags(!showTopTags)}
           className="absolute top-4 right-4 md:top-6 md:right-6 lg:top-8 lg:right-8 z-30 px-4 md:px-6 py-2 md:py-3 bg-brand-secondary text-brand-primary font-black text-xs md:text-sm uppercase rounded-full border-2 border-brand-primary hover:scale-105 transition-transform shadow-lg"
         >
-          {showTopTags ? 'Hide' : 'Top 3 Tags'}
+          {showTopTags ? 'Hide' : 'Top 5 Tags'}
         </button>
 
         {/* Top Tags Display */}
@@ -156,7 +202,7 @@ export default function DisplayPage() {
           {showTopTags && (() => {
             const topTags = [...submissions]
               .sort((a, b) => b.count - a.count)
-              .slice(0, 3);
+              .slice(0, 5);
             
             return (
               <motion.div
@@ -165,7 +211,7 @@ export default function DisplayPage() {
                 exit={{ opacity: 0, y: -20 }}
                 className="absolute top-20 md:top-24 lg:top-28 right-4 md:right-6 lg:right-8 z-20 bg-white/95 backdrop-blur-md rounded-2xl p-4 md:p-6 shadow-2xl border-2 border-brand-primary"
               >
-                <h3 className="text-brand-primary font-black text-sm md:text-base uppercase mb-3 md:mb-4">Top 3 Tags</h3>
+                <h3 className="text-brand-primary font-black text-sm md:text-base uppercase mb-3 md:mb-4">Top 5 Tags</h3>
                 <div className="space-y-2 md:space-y-3">
                   {topTags.map((tag, index) => (
                     <div key={tag.word} className="flex items-center gap-3 md:gap-4">
@@ -218,10 +264,10 @@ export default function DisplayPage() {
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
             >
               {(() => {
-                // Group submissions by original_text and name
+                // Group submissions by submission_id
                 type GroupedItem = { id: string; name: string; original_text: string; created_at: string; tags: string[] };
                 const grouped = feed.reduce((acc, sub) => {
-                  const key = `${sub.original_text}-${sub.name}-${sub.created_at}`;
+                  const key = sub.submission_id || sub.id; // Fallback to id for old data
                   if (!acc[key]) {
                     acc[key] = {
                       id: sub.id,
@@ -252,50 +298,27 @@ export default function DisplayPage() {
                       {item.tags.map((tag: string, idx: number) => {
                         // Hardcoded color map for tags
                         const getTagColor = (text: string) => {
+                          // Consolidated 15-tag color map - bright colors only
                           const tagColorMap: Record<string, string> = {
+                            'SUCCESS': 'bg-amber-500 text-white',
+                            'WELLNESS': 'bg-teal-500 text-white',
                             'INNOVATION': 'bg-violet-500 text-white',
-                            'VELOCITY': 'bg-emerald-500 text-white',
+                            'LEADERSHIP': 'bg-blue-500 text-white',
+                            'ADVENTURE': 'bg-purple-500 text-white',
                             'GROWTH': 'bg-orange-500 text-white',
                             'EXCELLENCE': 'bg-cyan-500 text-white',
-                            'LEADERSHIP': 'bg-pink-500 text-white',
-                            'WEALTH': 'bg-blue-500 text-white',
-                            'PROSPERITY': 'bg-rose-500 text-white',
-                            'SUCCESS': 'bg-amber-500 text-white',
-                            'HEALTH': 'bg-teal-500 text-white',
-                            'FITNESS': 'bg-indigo-500 text-white',
+                            'VELOCITY': 'bg-emerald-500 text-white',
                             'LEARNING': 'bg-lime-500 text-white',
                             'CREATIVITY': 'bg-fuchsia-500 text-white',
                             'PRODUCTIVITY': 'bg-sky-500 text-white',
                             'BALANCE': 'bg-red-500 text-white',
                             'MINDFULNESS': 'bg-green-500 text-white',
-                            'ADVENTURE': 'bg-purple-500 text-white',
-                            'TRAVEL': 'bg-yellow-500 text-white',
-                            'FAMILY': 'bg-red-400 text-white',
-                            'CAREER': 'bg-blue-600 text-white',
-                            'BUSINESS': 'bg-gray-700 text-white',
-                            'IMPACT': 'bg-orange-600 text-white',
-                            'SUSTAINABILITY': 'bg-green-600 text-white',
-                            'TECHNOLOGY': 'bg-indigo-600 text-white',
-                            'AI': 'bg-purple-600 text-white',
-                            'COMMUNITY': 'bg-pink-600 text-white'
+                            'FAMILY': 'bg-rose-500 text-white',
+                            'IMPACT': 'bg-indigo-500 text-white'
                           };
                           
-                          // Return hardcoded color if exists
-                          if (tagColorMap[text]) {
-                            return tagColorMap[text];
-                          }
-                          
-                          // Fallback for unmapped tags
-                      const fallbackColors = [
-                        'bg-violet-600 text-white',
-                        'bg-fuchsia-600 text-white',
-                        'bg-purple-600 text-white'
-                      ];
-                          let hash = 0;
-                          for (let i = 0; i < text.length; i++) {
-                            hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
-                          }
-                          return fallbackColors[hash % fallbackColors.length];
+                          // Return color if exists, otherwise use fallback
+                          return tagColorMap[text] || 'bg-slate-600 text-white';
                         };
                         
                         return (
@@ -324,8 +347,8 @@ export default function DisplayPage() {
 
           {/* Footer - Below Feed */}
           <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 text-brand-text/30 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
-            <div>{submissions.reduce((a, b) => a + b.count, 0)} Submissions</div>
-            <div>Everest Engineering &copy; 2026</div>
+            <div>{uniqueIpCount} {uniqueIpCount === 1 ? 'Participant' : 'Participants'}</div>
+            <div>Everest Engineering</div>
           </footer>
         </div>
       </div>

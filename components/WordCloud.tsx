@@ -55,15 +55,15 @@ export default function WordCloud({ words }: { words: Word[] }) {
         .size([width, height])
         .words(words.map(d => ({ 
           text: d.word, 
-          size: (15 + Math.sqrt(d.count) * 12) * scale,
+          size: (20 + Math.sqrt(d.count) * 15) * scale,
           word: d.word 
         })))
-        .padding(8) // Increased padding for more spread
+        .padding(20)
         .rotate(0)
-        .spiral('rectangular') // Rectangular spiral for better space coverage
+        .spiral('archimedean')
         .font("Impact")
         .fontSize((d: any) => d.size)
-        .random(() => 0.5) // Deterministic randomness for consistent layout
+        .random(() => 0.5)
         .on("end", (data: any[]) => {
           // Check if all words were placed
           if (data.length < words.length && attempts < maxAttempts) {

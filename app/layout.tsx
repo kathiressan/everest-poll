@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Everest Townhall 2026",
+  title: "Everest Townhall January 2026",
   description: "Share your 2026 goals with the team.",
 };
 

@@ -26,14 +26,11 @@ const NAMES = [
   "Sarah Jenkins", "Alex Chen", "Sofia Costa", "Omar Khalil", "Elena Rossi"
 ];
 
+// Consolidated 15 canonical tags only
 const TARGET_WORDS = [
-  "INNOVATION", "VELOCITY", "EXCELLENCE", "COMMUNITY", "TRUST", "IMPACT",
-  "BOLDNESS", "COLLABORATION", "ACCELERATION", "SYNERGY", "AI-FIRST", "SUSTAINABILITY",
-  "CULTURE", "AUTHENTICITY", "DISRUPTION", "CRAFTSMANSHIP", "ADAPTABILITY", "STABILITY",
-  "AGILITY", "RELIABILITY", "INCLUSIVITY", "TRANSPARENCY", "EMPOWERMENT", "INTEGRITY",
-  "GROWTH", "QUALITY", "EFFICIENCY", "CREATIVITY", "RESILIENCE", "SCALABILITY",
-  "OWNERSHIP", "CURIOSITY", "MASTERY", "VISION", "COURAGE", "PASSION",
-  "PRECISION", "DIVERSITY", "ACCOUNTABILITY", "LEARNING", "DELIVERY", "TEAMWORK"
+  "SUCCESS", "WELLNESS", "INNOVATION", "LEADERSHIP", "ADVENTURE",
+  "GROWTH", "EXCELLENCE", "VELOCITY", "LEARNING", "CREATIVITY",
+  "PRODUCTIVITY", "BALANCE", "MINDFULNESS", "FAMILY", "IMPACT"
 ];
 
 const GOALS = [
@@ -81,37 +78,60 @@ const GOALS = [
 
 async function seed() {
   console.log('🏔️ Starting the Everest APAC Simulation...');
+  console.log('💡 Simulating realistic concurrent submissions...\n');
   
-  for (let i = 0; i < 50; i++) {
+  let submitted = 0;
+  const startTime = Date.now();
+  const totalSubmissions = 50;
 
+  for (let i = 0; i < totalSubmissions; i++) {
     const name = NAMES[i % NAMES.length];
     const goal = GOALS[i % GOALS.length];
-    // Pick 1-2 words that "fit" the theme randomly
-    const wordCount = Math.floor(Math.random() * 2) + 1;
+    
+    // Pick 1-3 tags for this submission
+    const wordCount = Math.floor(Math.random() * 3) + 1; // 1-3 tags
     const words = [];
-    for(let j=0; j<wordCount; j++) {
-      words.push(TARGET_WORDS[Math.floor(Math.random() * TARGET_WORDS.length)]);
+    const usedIndices = new Set();
+    
+    // Ensure unique tags for this submission
+    while (words.length < wordCount) {
+      const idx = Math.floor(Math.random() * TARGET_WORDS.length);
+      if (!usedIndices.has(idx)) {
+        usedIndices.add(idx);
+        words.push(TARGET_WORDS[idx]);
+      }
     }
 
+    // Insert all tags for this submission at once (same timestamp and submission_id)
+    const submissionId = crypto.randomUUID();
+    
+    // Generate a random IP address for this submission
+    const ipAddress = `${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+    
     const submissions = words.map(word => ({
+      submission_id: submissionId,
       word,
       name: `${name} ${Math.floor(i/NAMES.length) + 1}`,
-      original_text: goal
+      original_text: goal,
+      ip_address: ipAddress
     }));
 
     const { error } = await supabase.from('submissions').insert(submissions);
 
     if (error) {
-      console.error(`❌ Batch ${i} failed:`, error.message);
+      console.error(`❌ Submission ${i + 1} failed:`, error.message);
     } else {
-      process.stdout.write(`\r✅ Progress: ${i+1}/50 entries sent...`);
+      submitted++;
+      process.stdout.write(`\r✅ Progress: ${submitted}/${totalSubmissions} submissions sent...`);
     }
 
-    // Delay to allow the user to watch the mountain grow and feed scroll
-    await new Promise(r => setTimeout(r, 1000));
+    // Random delay between submissions (50ms - 500ms) - faster for demo
+    const delay = Math.floor(Math.random() * 450) + 50;
+    await new Promise(r => setTimeout(r, delay));
   }
 
   console.log('\n\n🏔️ Simulation Complete! The mountain is at its peak.');
+  console.log(`⏱️  Total time: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
 }
 
 seed();

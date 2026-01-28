@@ -1,8 +1,10 @@
 create table public.submissions (
   id uuid default gen_random_uuid() primary key,
+  submission_id uuid not null,
   word text not null,
   name text,
   original_text text,
+  ip_address text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
