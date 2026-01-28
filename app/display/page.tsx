@@ -339,9 +339,8 @@ export default function DisplayPage() {
           </div>
 
           {/* Footer - Below Feed */}
-          <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 text-brand-text/30 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
+          <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
             <div>{uniqueIpCount} {uniqueIpCount === 1 ? 'Participant' : 'Participants'}</div>
-            <div>Everest Engineering</div>
           </footer>
         </div>
       </div>
