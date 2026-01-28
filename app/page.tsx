@@ -53,16 +53,12 @@ export default function Home() {
       >
         <header className="text-center mb-10 space-y-2">
           <div className="flex justify-center mb-4">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 5 }}
-            >
-              <Mountain className="w-12 h-12 text-brand-primary" />
-            </motion.div>
+            <img 
+              src="/everest-logo.svg" 
+              alt="Everest Engineering" 
+              className="h-16 md:h-20 w-auto"
+            />
           </div>
-          <h1 className="text-4xl font-black text-brand-primary tracking-tighter uppercase font-brand-heading">
-            Peak 2026
-          </h1>
           <p className="text-brand-text/70 font-medium">Build the mountain. Share your ambition.</p>
         </header>
 

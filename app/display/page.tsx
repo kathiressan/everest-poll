@@ -171,22 +171,15 @@ export default function DisplayPage() {
 
       <div className="z-10 w-full h-full flex flex-col">
         {/* Header - Top Left Corner */}
-        <header className="absolute top-4 left-4 md:top-6 md:left-6 lg:top-8 lg:left-8 z-20 space-y-2">
-          <motion.div 
-            animate={{ y: [0, -5, 0] }}
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            className="flex items-center gap-2 md:gap-3"
-          >
-            <Mountain className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-brand-primary" />
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-brand-primary font-brand-heading uppercase tracking-tighter">
-                Our 2026 Peak
-              </h1>
-              <p className="text-brand-text/60 font-medium tracking-[0.2em] md:tracking-[0.3em] uppercase text-[8px] md:text-[10px]">
-                Live Stream of Collective Ambition
-              </p>
-            </div>
-          </motion.div>
+        <header className="absolute top-4 left-4 md:top-6 md:left-6 lg:top-8 lg:left-8 z-20 space-y-1">
+          <img 
+            src="/everest-logo.svg" 
+            alt="Everest Engineering" 
+            className="h-10 md:h-12 lg:h-16 w-auto"
+          />
+          <p className="text-brand-text/60 font-medium tracking-[0.2em] md:tracking-[0.3em] uppercase text-[8px] md:text-[10px]">
+            Live Stream of Collective Ambition
+          </p>
         </header>
 
         {/* Top Tags Button */}
