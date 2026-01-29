@@ -9,7 +9,6 @@ import WordCloud from '@/components/WordCloud';
 export default function DisplayPage() {
   const [submissions, setSubmissions] = useState<{ word: string; count: number }[]>([]);
   const [feed, setFeed] = useState<any[]>([]);
-  const [newWord, setNewWord] = useState<string | null>(null);
   const [showTopTags, setShowTopTags] = useState(false);
   const [uniqueParticipantCount, setUniqueParticipantCount] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -100,10 +99,6 @@ export default function DisplayPage() {
         (payload: any) => {
           const { word, ip_address } = payload.new;
           if (!word) return;
-
-          // Immediate highlight bubble
-          setNewWord(word);
-          setTimeout(() => setNewWord(null), 3000);
 
           // Add to message queue instead of updating feed immediately
           messageQueue.current.push(payload.new);
@@ -237,19 +232,6 @@ export default function DisplayPage() {
         <div className="w-full pt-12 md:pt-16 lg:pt-20 h-[calc(100vh-12rem)] md:h-[calc(100vh-13rem)] lg:h-[calc(100vh-14rem)]">
           <div className="h-full relative w-full">
             <WordCloud words={submissions} />
-            
-            <AnimatePresence>
-              {newWord && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5, y: 100 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 1.5, y: -100 }}
-                  className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-brand-secondary text-brand-primary px-8 py-4 rounded-full text-4xl font-black shadow-2xl z-50 border-4 border-brand-primary"
-                >
-                  {newWord}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
 
