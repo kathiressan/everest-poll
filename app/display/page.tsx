@@ -11,7 +11,7 @@ export default function DisplayPage() {
   const [feed, setFeed] = useState<any[]>([]);
   const [newWord, setNewWord] = useState<string | null>(null);
   const [showTopTags, setShowTopTags] = useState(false);
-  const [uniqueIpCount, setUniqueIpCount] = useState(0);
+  const [uniqueParticipantCount, setUniqueParticipantCount] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
   
   // Message queue for throttling feed updates
@@ -63,9 +63,13 @@ export default function DisplayPage() {
         setSubmissions(Object.entries(counts).map(([word, count]) => ({ word, count: count as number })));
         submissionsBuffer.current = counts;
         
-        // Calculate unique IP count
-        const uniqueIps = new Set(reversed.map((s: any) => s.ip_address).filter(Boolean));
-        setUniqueIpCount(uniqueIps.size);
+        // Calculate unique participant count (case insensitive names)
+        const uniqueNames = new Set(
+          reversed
+            .map((s: any) => s.name?.toLowerCase())
+            .filter((name: string | undefined) => name && name !== 'anonymous')
+        );
+        setUniqueParticipantCount(uniqueNames.size);
         
         // Show all existing messages immediately (no throttling on page load)
         setFeed(reversed);
@@ -121,9 +125,13 @@ export default function DisplayPage() {
   // Update unique participant count whenever feed or queue changes
   useEffect(() => {
     const allKnownSubmissions = [...feed, ...messageQueue.current];
-    const uniqueIps = new Set(allKnownSubmissions.map(s => s.ip_address).filter(Boolean));
-    if (uniqueIps.size > 0) {
-      setUniqueIpCount(uniqueIps.size);
+    const uniqueNames = new Set(
+      allKnownSubmissions
+        .map(s => s.name?.toLowerCase())
+        .filter((name: string | undefined) => name && name !== 'anonymous')
+    );
+    if (uniqueNames.size > 0) {
+      setUniqueParticipantCount(uniqueNames.size);
     }
   }, [feed]); // Recalculate when feed updates
 
@@ -337,7 +345,7 @@ export default function DisplayPage() {
           </div>
 
           <footer className="mt-2 md:mt-3 lg:mt-4 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-12 font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em]">
-            <div>{uniqueIpCount} {uniqueIpCount === 1 ? 'Participant' : 'Participants'}</div>
+            <div>{uniqueParticipantCount} {uniqueParticipantCount === 1 ? 'Participant' : 'Participants'}</div>
           </footer>
         </div>
       </div>
