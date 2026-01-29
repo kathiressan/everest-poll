@@ -1,11 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { mapGoalToCategoryAndInsert } from '@/lib/actions';
 import { Send, CheckCircle2, Mountain, Monitor } from 'lucide-react';
 import Link from 'next/link';
+
+const NAME_CACHE_KEY = 'everest_poll_user_name';
+const NAME_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Helper functions for name caching
+const getCachedName = (): string => {
+  if (typeof window === 'undefined') return '';
+  
+  try {
+    const cached = localStorage.getItem(NAME_CACHE_KEY);
+    if (!cached) return '';
+    
+    const { name, timestamp } = JSON.parse(cached);
+    const now = Date.now();
+    
+    // Check if cache is still valid (within 5 minutes)
+    if (now - timestamp < NAME_CACHE_DURATION) {
+      return name;
+    } else {
+      // Cache expired, remove it
+      localStorage.removeItem(NAME_CACHE_KEY);
+      return '';
+    }
+  } catch {
+    return '';
+  }
+};
+
+const setCachedName = (name: string) => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(NAME_CACHE_KEY, JSON.stringify({
+      name,
+      timestamp: Date.now()
+    }));
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+};
 
 export default function Home() {
   const [word, setWord] = useState('');
@@ -13,6 +53,14 @@ export default function Home() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedTags, setSubmittedTags] = useState<string[]>([]);
+
+  // Load cached name on mount
+  useEffect(() => {
+    const cachedName = getCachedName();
+    if (cachedName) {
+      setName(cachedName);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +77,14 @@ export default function Home() {
         throw new Error(result.error || 'Failed to submit');
       }
       
+      // Cache the name for 5 minutes
+      if (name.trim()) {
+        setCachedName(name.trim());
+      }
+      
       setSubmittedTags(result.tags || []);
       setStatus('success');
       setWord('');
-      setName('');
     } catch (err: any) {
       // Log errors silently or handle via reporting service
       setStatus('error');
