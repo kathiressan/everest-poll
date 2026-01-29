@@ -114,21 +114,13 @@ export default function Home() {
                   })}
                 </div>
               </div>
-              <p className="text-brand-text/80 font-medium">Your goal is joining the peaks. Look at the big screen!</p>
+              <p className="text-brand-text/80 font-medium text-lg">Your goal is joining the peaks. Go back to the big screen to see it live!</p>
               <button 
                 onClick={() => setStatus('idle')}
                 className="w-full py-4 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-all uppercase tracking-widest text-sm"
               >
                 Submit Another
               </button>
-
-              <Link 
-                href="/display"
-                className="w-full py-4 bg-transparent text-brand-primary border-2 border-brand-primary font-bold rounded-xl hover:bg-brand-primary/5 transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2"
-              >
-                <Monitor className="w-4 h-4" />
-                View Live Board
-              </Link>
             </motion.div>
           ) : (
             <motion.div
