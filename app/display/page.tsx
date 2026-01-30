@@ -183,18 +183,6 @@ export default function DisplayPage() {
           </p>
         </header>
 
-        {/* QR Code & URL - Desktop Only */}
-        <div className="hidden lg:flex absolute top-4 left-1/2 -translate-x-1/2 z-20 items-center gap-4 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-xl border-2 border-brand-primary/20">
-          <img 
-            src="/url-qr.png" 
-            alt="QR Code to Join" 
-            className="w-24 h-24 rounded-lg"
-          />
-          <div className="flex flex-col gap-1">
-            <p className="text-brand-primary/60 font-bold text-xs uppercase tracking-wider">Scan to Join</p>
-            <p className="text-brand-primary font-black text-xl">everest-poll.vercel.app</p>
-          </div>
-        </div>
 
         {/* Top Tags Button */}
         <button
